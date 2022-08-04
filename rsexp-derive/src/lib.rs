@@ -11,7 +11,7 @@ use syn::{
     parse_quote, DataEnum, DataUnion, DeriveInput, FieldsNamed, FieldsUnnamed, GenericParam,
 };
 
-#[proc_macro_derive(SexpOf)]
+#[proc_macro_derive(SexpOf, attributes(sexp_rename))]
 pub fn sexp_of_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
     impl_sexp_of(&ast)

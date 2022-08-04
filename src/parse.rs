@@ -9,6 +9,31 @@ pub enum Error {
     EmptyAtom,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::UnexpectedCharInString(ch) => write!(f, "Unexpected chain `{ch}`"),
+            Error::UnexpectedEofInString => write!(f, "Unexpected EOL"),
+            Error::UnexpectedEof => write!(f, "Unexpected EOF"),
+            Error::EmptyAtom => write!(f, "Empty atom"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+
+    fn description(&self) -> &str {
+        "description() is deprecated; use Display"
+    }
+
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        self.source()
+    }
+}
+
 type Res<'a, T> = Result<(&'a [u8], T), Error>;
 
 fn space_or_comments(input: &[u8]) -> Res<()> {

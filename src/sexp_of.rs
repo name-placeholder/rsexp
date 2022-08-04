@@ -1,14 +1,33 @@
-use crate::{atom, list, BytesSlice, Sexp, UseToString};
+use crate::{atom, list, BytesSlice, Sexp};
 
 pub trait SexpOf {
     fn sexp_of(&self) -> Sexp;
 }
 
-impl<T: ToString + UseToString> SexpOf for T {
-    fn sexp_of(&self) -> Sexp {
-        atom(self.to_string().as_bytes())
-    }
+macro_rules! num_impl {
+    ($ty:ident) => {
+        impl SexpOf for $ty {
+            fn sexp_of(&self) -> Sexp {
+                atom(self.to_string().as_bytes())
+            }
+        }
+    };
 }
+
+num_impl!(u8);
+num_impl!(u16);
+num_impl!(u32);
+num_impl!(u64);
+num_impl!(usize);
+
+num_impl!(i8);
+num_impl!(i16);
+num_impl!(i32);
+num_impl!(i64);
+num_impl!(isize);
+
+num_impl!(f32);
+num_impl!(f64);
 
 impl SexpOf for String {
     fn sexp_of(&self) -> Sexp {
@@ -34,6 +53,24 @@ where
 {
     fn sexp_of(&self) -> Sexp {
         Sexp::List(self.iter().map(|x| x.sexp_of()).collect())
+    }
+}
+
+impl<T> SexpOf for Vec<T>
+where
+    T: SexpOf,
+{
+    fn sexp_of(&self) -> Sexp {
+        Sexp::List(self.iter().map(|x| x.sexp_of()).collect())
+    }
+}
+
+impl<T> SexpOf for Box<T>
+where
+    T: SexpOf,
+{
+    fn sexp_of(&self) -> Sexp {
+        self.as_ref().sexp_of()
     }
 }
 

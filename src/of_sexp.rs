@@ -1,4 +1,4 @@
-use crate::{Sexp, UseToString};
+use crate::Sexp;
 use std::collections::{BTreeMap, HashMap};
 
 // Conversion from Sexp to T
@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, HashMap};
 pub enum IntoSexpError {
     Utf8Error(std::str::Utf8Error),
     FromUtf8Error(std::string::FromUtf8Error),
+    FromStr,
     ExpectedAtomGotList { type_: &'static str, list_len: usize },
     ExpectedListGotAtom { type_: &'static str },
     ExpectedPairForMapGotAtom { type_: &'static str },
@@ -128,18 +129,60 @@ impl OfSexp for String {
     }
 }
 
-impl<T> OfSexp for T
+macro_rules! num_impl {
+    ($ty:ident) => (
+        impl OfSexp for $ty
+        {
+            fn of_sexp(s: &Sexp) -> Result<Self, IntoSexpError> {
+                let atom = s.extract_atom(stringify!($ty))?;
+                let atom = std::str::from_utf8(atom)?;
+                let atom = atom.parse().map_err(|_| IntoSexpError::FromStr)?;
+                Ok(atom)
+            }
+        }
+
+    );
+}
+
+num_impl!(u8);
+num_impl!(u16);
+num_impl!(u32);
+num_impl!(u64);
+num_impl!(usize);
+
+num_impl!(i8);
+num_impl!(i16);
+num_impl!(i32);
+num_impl!(i64);
+num_impl!(isize);
+
+num_impl!(f32);
+num_impl!(f64);
+
+
+
+// impl<T> OfSexp for T
+// where
+//     T: UseToString + std::str::FromStr,
+//     T::Err: std::fmt::Display,
+// {
+//     fn of_sexp(s: &Sexp) -> Result<Self, IntoSexpError> {
+//         let atom = s.extract_atom("stringable")?;
+//         let atom = std::str::from_utf8(atom)?;
+//         T::from_str(atom).map_err(|err| {
+//             let err = format!("{}", err);
+//             IntoSexpError::StringConversionError { err }
+//         })
+//     }
+// }
+
+impl<T> OfSexp for Box<T>
 where
-    T: UseToString + std::str::FromStr,
-    T::Err: std::fmt::Display,
+    T: OfSexp,
 {
     fn of_sexp(s: &Sexp) -> Result<Self, IntoSexpError> {
-        let atom = s.extract_atom("stringable")?;
-        let atom = std::str::from_utf8(atom)?;
-        T::from_str(atom).map_err(|err| {
-            let err = format!("{}", err);
-            IntoSexpError::StringConversionError { err }
-        })
+        let inner = T::of_sexp(s)?;
+        Ok(Box::new(inner))
     }
 }
 
